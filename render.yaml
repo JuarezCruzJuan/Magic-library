@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: magic-library-backend
+    name: magic-library-fullstack
     env: node
-    buildCommand: cd server && npm install
+    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
     startCommand: cd server && node server.js
     envVars:
       - key: NODE_ENV
@@ -21,12 +21,3 @@ services:
         value: magic_library
       - key: STRIPE_SECRET_KEY
         sync: false
-
-  - type: web
-    name: magic-library-frontend
-    env: static
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: ./client/build
-    envVars:
-      - key: REACT_APP_API_URL
-        value: https://magic-library-backend.onrender.com
