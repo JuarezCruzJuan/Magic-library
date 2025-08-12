@@ -136,7 +136,28 @@ if (process.env.NODE_ENV === 'production') {
   } else {
     console.error('Could not find React build directory in any of the expected locations');
     console.error('Tested paths:', possiblePaths);
+    
+    // Fallback route when build directory is not found
+    app.get('/', (req, res) => {
+      res.status(500).json({
+        error: 'React build directory not found',
+        message: 'The application is not properly configured for production',
+        testedPaths: possiblePaths
+      });
+    });
   }
+} else {
+  // Development mode - serve a simple message
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Magic Library API is running in development mode',
+      endpoints: {
+        api: '/api/*',
+        payment: '/api/create-payment-intent',
+        confirm: '/api/confirm-payment'
+      }
+    });
+  });
 }
 
 // Error handling middleware
