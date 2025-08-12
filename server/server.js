@@ -104,11 +104,21 @@ app.use('/api', authRoutes);
 
 // Serve static files from React build
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  // Try multiple possible paths for the build directory
+  const buildPath = path.join(__dirname, '../client/build');
+  const altBuildPath = path.join(process.cwd(), 'client/build');
+  
+  // Check which path exists and use it
+  const staticPath = require('fs').existsSync(buildPath) ? buildPath : altBuildPath;
+  
+  console.log('Serving static files from:', staticPath);
+  app.use(express.static(staticPath));
   
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    const indexPath = path.join(staticPath, 'index.html');
+    console.log('Serving index.html from:', indexPath);
+    res.sendFile(indexPath);
   });
 }
 
