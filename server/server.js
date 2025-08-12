@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require('path');
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -15,7 +16,9 @@ app.use(helmet());
 
 // Middleware
 app.use(cors({
-  origin: ['https://localhost:3000', 'http://localhost:3000'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://magic-library-fullstack.onrender.com', 'https://magic-library-fullstack-*.onrender.com']
+    : ['https://localhost:3000', 'http://localhost:3000'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -98,6 +101,16 @@ app.post('/api/confirm-payment', async (req, res) => {
 
 // Routes
 app.use('/api', authRoutes);
+
+// Serve static files from React build
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
