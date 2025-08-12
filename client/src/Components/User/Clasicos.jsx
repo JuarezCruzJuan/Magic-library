@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useCart } from '../../contexts/CartContext';
 import '../../Assents/css/Clasicos.css';
+import { useNavigate } from 'react-router-dom';
+import Nav from './Nav';
+import Footer from './Footer';
 
 const Clasicos = () => {
+  const { addToCart } = useCart();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedBook, setSelectedBook] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchClassicBooks();
@@ -28,54 +35,175 @@ const Clasicos = () => {
 
   if (loading) {
     return (
-      <div className="clasicos-container">
-        <div className="loading">Cargando libros clásicos...</div>
-      </div>
+      <>
+        <Nav />
+        <div className="clasicos-container">
+          <div className="loading">
+            <i className="fas fa-spinner"></i>
+            <p>Cargando libros clásicos...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="clasicos-container">
-        <div className="error">{error}</div>
-      </div>
+      <>
+        <Nav />
+        <div className="clasicos-container">
+          <div className="error">
+            <i className="fas fa-exclamation-triangle"></i>
+            <p>{error}</p>
+            <button onClick={fetchClassicBooks} className="retry-button">
+              <i className="fas fa-redo"></i> Reintentar
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </>
     );
   }
 
-  return (
-    <div className="clasicos-container">
-      <h1 className="clasicos-title">Libros Clásicos</h1>
-      
-      {books.length === 0 ? (
-        <div className="no-books">
-          <p>No hay libros clásicos disponibles en este momento.</p>
-        </div>
-      ) : (
-        <div className="books-grid">
-          {books.map(book => (
-            <div key={book.id} className="book-card">
-              <div className="book-image-container">
-                {book.imagen ? (
-                  <img 
-                    src={`data:image/jpeg;base64,${book.imagen}`} 
-                    alt={book.titulo}
-                    className="book-image"
-                  />
-                ) : (
-                  <div className="no-image">
-                    <span>Sin imagen</span>
-                  </div>
-                )}
-              </div>
-              <div className="book-info">
-                <h3 className="book-title">{book.titulo}</h3>
-                <p className="book-price">${book.precio}</p>
+  const handleVerMas = (book) => {
+    setSelectedBook(book);
+  };
+
+  const handleBack = () => {
+    setSelectedBook(null);
+  };
+
+  const handleAddToCart = (book) => {
+    addToCart(book);
+    alert(`Libro "${book.titulo}" agregado al carrito`);
+  };
+
+  // Modal para mostrar detalles del libro
+  const renderModal = () => {
+    if (!selectedBook) return null;
+
+    return (
+      <div className="modal-overlay" onClick={handleBack}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <button onClick={handleBack} className="modal-close">
+            <i className="fas fa-times"></i>
+          </button>
+          <div className="modal-body">
+            <div className="modal-image">
+              {selectedBook.imagen ? (
+                <img 
+                  src={selectedBook.imagen} 
+                  alt={selectedBook.titulo}
+                />
+              ) : (
+                <div className="no-image">
+                  <i className="fas fa-book"></i>
+                  <span>Sin imagen</span>
+                </div>
+              )}
+            </div>
+            <div className="modal-info">
+              <h2>{selectedBook.titulo}</h2>
+              <p className="book-author">por {selectedBook.autor || 'Desconocido'}</p>
+              <p className="book-description">{selectedBook.descripcion || 'Sin descripción disponible'}</p>
+              <p className="book-price-detail">${selectedBook.precio}</p>
+              <p className="book-stock">
+                <i className="fas fa-box"></i>
+                {selectedBook.stock} unidades disponibles
+              </p>
+              <div className="modal-actions">
+                <button onClick={handleBack} className="btn-back">
+                  <i className="fas fa-arrow-left"></i> Volver
+                </button>
+                <button 
+                  onClick={() => handleAddToCart(selectedBook)} 
+                  className="btn-add-to-cart"
+                  disabled={selectedBook.stock <= 0}
+                >
+                  <i className="fas fa-shopping-cart"></i>
+                  {selectedBook.stock > 0 ? 'Agregar al carrito' : 'Sin stock'}
+                </button>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Nav />
+      <div className="clasicos-container">
+        <h1 className="clasicos-title">
+          <i className="fas fa-book-open"></i>
+          Libros Clásicos
+        </h1>
+        {books.length === 0 ? (
+          <div className="no-books">
+            <i className="fas fa-book"></i>
+            <p>No hay libros clásicos disponibles</p>
+          </div>
+        ) : (
+          <div className="books-grid">
+            {books.map((book) => (
+              <div key={book.id} className="book-card">
+                <div className="book-image-container">
+                  {book.imagen ? (
+                    <img 
+                      src={book.imagen} 
+                      alt={book.titulo}
+                      className="book-image"
+                    />
+                  ) : (
+                    <div className="no-image">
+                      <i className="fas fa-book"></i>
+                      <span>Sin imagen</span>
+                    </div>
+                  )}
+                  {book.stock <= 0 && (
+                    <div className="out-of-stock-overlay">
+                      <span>Sin Stock</span>
+                    </div>
+                  )}
+                </div>
+                <div className="book-info">
+                  <h3 className="book-title">{book.titulo}</h3>
+                  <p className="book-author">{book.autor || 'Desconocido'}</p>
+                  <div className="book-details">
+                    <p className="book-price">${book.precio}</p>
+                    <p className="book-stock">
+                      <i className="fas fa-box"></i>
+                      Stock: {book.stock}
+                    </p>
+                  </div>
+                  <div className="book-actions">
+                    <button 
+                      onClick={() => setSelectedBook(book)} 
+                      className="btn-ver-mas"
+                    >
+                      <i className="fas fa-eye"></i>
+                      Ver más
+                    </button>
+                    <button 
+                      onClick={() => handleAddToCart(book)} 
+                      className="btn-agregar"
+                      disabled={book.stock <= 0}
+                    >
+                      <i className="fas fa-shopping-cart"></i>
+                      {book.stock > 0 ? 'Agregar' : 'Sin stock'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {renderModal()}
+      <Footer />
+    </>
   );
 };
 

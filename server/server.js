@@ -18,7 +18,8 @@ app.use(cors({
   origin: ['https://localhost:3000', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Redirect HTTP to HTTPS in production
 if (process.env.NODE_ENV === 'production') {
@@ -147,6 +148,8 @@ function printRoutes(port, protocol) {
   console.log(`- POST ${protocol}://localhost:${port}/api/login`);
   console.log(`- POST ${protocol}://localhost:${port}/api/admin/register`);
   console.log(`- POST ${protocol}://localhost:${port}/api/register`);
+  console.log(`- POST ${protocol}://localhost:${port}/api/recover-password`);
+  console.log(`- POST ${protocol}://localhost:${port}/api/reset-password`);
   console.log(`- GET ${protocol}://localhost:${port}/api/categories`);
   console.log(`- GET ${protocol}://localhost:${port}/api/books`);
   console.log(`- POST ${protocol}://localhost:${port}/api/books`);

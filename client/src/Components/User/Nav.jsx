@@ -1,10 +1,12 @@
 import React from 'react'
 import { Link, useNavigate } from "react-router-dom";
+import { useCart } from '../../contexts/CartContext';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 const Nav = () => {
   const navigate = useNavigate();
+  const { getCartItemsCount } = useCart();
 
   const handleLogout = () => {
     if (window.confirm('¿Estás seguro que deseas cerrar sesión?')) {
@@ -48,13 +50,23 @@ const Nav = () => {
               </Link>
             </li>
             <li className="nav-item">
+              <Link className="nav-link" to="/inventory">
+                <i className="fas fa-warehouse me-1"></i>
+                Inventario
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" to="/profile">
                 Mi Perfil
               </Link>
             </li>
             <li className="nav-item">
               <Link className="nav-link" to="/cart">
-                Carrito
+                Carrito {getCartItemsCount() > 0 && (
+                  <span className="badge bg-primary ms-1">
+                    {getCartItemsCount()}
+                  </span>
+                )}
               </Link>
             </li>
             <li className="nav-item">

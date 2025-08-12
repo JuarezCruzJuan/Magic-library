@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('mysql2');
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -18,24 +20,205 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
         console.log('Attempting login for:', email);
         
+        // Primero obtenemos el usuario por email
         const [rows] = await pool.query(
-            'SELECT id, nombre, email, rol FROM users WHERE email = ? AND password = ?',
-            [email, password]
+            'SELECT id, nombre, email, password, rol, is_active FROM users WHERE email = ?',
+            [email]
         );
     
-        console.log('Query results:', rows);
+        console.log('User found:', rows.length > 0 ? 'Yes' : 'No');
 
-        if (rows.length > 0) {
-            const user = rows[0];
-            res.json({ success: true, user });
-        } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
+        if (rows.length === 0) {
+            return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
         }
+        
+        const user = rows[0];
+        
+        // Verificar la contraseña (puede ser hasheada o texto plano)
+        let passwordMatch = false;
+        
+        // Si la contraseña almacenada empieza con $2a$, $2b$, o $2y$, es un hash de bcrypt
+        if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
+            passwordMatch = await bcrypt.compare(password, user.password);
+        } else {
+            // Comparación directa para contraseñas en texto plano
+            passwordMatch = password === user.password;
+        }
+        
+        if (!passwordMatch) {
+            return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
+        }
+        
+        // Remover la contraseña del objeto user antes de continuar
+        delete user.password;
+        
+        // Verificar si la cuenta está activada
+        if (!user.is_active) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Cuenta no activada. Por favor, revisa tu correo electrónico para activar tu cuenta.' 
+            });
+        }
+        
+        // Si todo está correcto, devolvemos la información del usuario
+        delete user.is_active; // No necesitamos enviar este campo al cliente
+        res.json({ success: true, user });
     } catch (error) {
         console.error('Login error details:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Database error',
+            message: 'Error de base de datos',
+            details: error.message 
+        });
+    }
+});
+
+// Ruta para solicitar recuperación de contraseña
+router.post('/recover-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        // Verificar si el usuario existe
+        const [users] = await pool.query('SELECT id, nombre FROM users WHERE email = ?', [email]);
+        
+        if (users.length === 0) {
+            // Por seguridad, no revelamos si el email existe o no
+            return res.json({ 
+                success: true, 
+                message: 'Si el correo existe en nuestra base de datos, recibirás instrucciones para restablecer tu contraseña.' 
+            });
+        }
+        
+        const user = users[0];
+        
+        // Generar token único para recuperación (válido por 1 hora)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hora
+        
+        // Guardar token en la base de datos
+        await pool.query(
+            'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
+            [resetToken, resetTokenExpiry, user.id]
+        );
+        
+        // En una implementación real, aquí enviarías un correo electrónico con el enlace
+        // para restablecer la contraseña, que incluiría el token
+        // Ejemplo: https://tudominio.com/reset-password?token=resetToken
+        
+        console.log(`Token de recuperación para ${email}: ${resetToken}`);
+        
+        res.json({ 
+            success: true, 
+            message: 'Si el correo existe en nuestra base de datos, recibirás instrucciones para restablecer tu contraseña.' 
+        });
+    } catch (error) {
+        console.error('Error en recuperación de contraseña:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al procesar la solicitud',
+            details: error.message 
+        });
+    }
+});
+
+// Ruta para restablecer la contraseña con el token
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        
+        if (!token || !newPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Token y nueva contraseña son requeridos' 
+            });
+        }
+        
+        // Validar la nueva contraseña
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: passwordValidation.message 
+            });
+        }
+        
+        // Buscar usuario con el token válido
+        const [users] = await pool.query(
+            'SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > ?',
+            [token, new Date()]
+        );
+        
+        if (users.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Token inválido o expirado' 
+            });
+        }
+        
+        const userId = users[0].id;
+        
+        // Actualizar contraseña y limpiar token
+        await pool.query(
+            'UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
+            [newPassword, userId]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'Contraseña actualizada correctamente' 
+        });
+    } catch (error) {
+        console.error('Error al restablecer contraseña:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al procesar la solicitud',
+            details: error.message 
+        });
+    }
+});
+
+// Ruta para activar la cuenta de usuario
+router.get('/activate', async (req, res) => {
+    try {
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Token de activación requerido' 
+            });
+        }
+        
+        // Buscar usuario con el token de activación válido
+        const [users] = await pool.query(
+            'SELECT id FROM users WHERE activation_token = ? AND activation_expiry > ? AND is_active = false',
+            [token, new Date()]
+        );
+        
+        if (users.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Token de activación inválido o expirado' 
+            });
+        }
+        
+        const userId = users[0].id;
+        
+        // Activar la cuenta y limpiar token
+        await pool.query(
+            'UPDATE users SET is_active = true, activation_token = NULL, activation_expiry = NULL WHERE id = ?',
+            [userId]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'Cuenta activada correctamente. Ahora puedes iniciar sesión.' 
+        });
+    } catch (error) {
+        console.error('Error al activar cuenta:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al procesar la solicitud',
             details: error.message 
         });
     }
@@ -116,10 +299,10 @@ router.post('/admin/register', async (req, res) => {
             });
         }
 
-        // Insert new admin
+        // Insert new admin with active status
         const [result] = await pool.query(
-            'INSERT INTO users (nombre, email, password, rol) VALUES (?, ?, ?, ?)',
-            [nombre, email, password, rol]
+            'INSERT INTO users (nombre, email, password, rol, is_active) VALUES (?, ?, ?, ?, ?)',
+            [nombre, email, password, rol, true]
         );
 
         res.json({ 
@@ -165,18 +348,28 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Insert new client
+        // Generar token de activación
+        const activationToken = crypto.randomBytes(32).toString('hex');
+        const activationExpiry = new Date(Date.now() + 24 * 3600000); // 24 horas
+
+        // Insert new client with activation token
         const [result] = await pool.query(
-            'INSERT INTO users (nombre, email, password, rol) VALUES (?, ?, ?, ?)',
-            [nombre, email, password, rol]
+            'INSERT INTO users (nombre, email, password, rol, activation_token, is_active, activation_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nombre, email, password, rol, activationToken, false, activationExpiry]
         );
+
+        // En una implementación real, aquí enviarías un correo electrónico con el enlace de activación
+        // que incluiría el token, por ejemplo: https://tudominio.com/activate?token=activationToken
+        
+        console.log(`Token de activación para ${email}: ${activationToken}`);
 
         res.json({ 
             success: true, 
-            message: 'Usuario registrado exitosamente',
-            userId: result.insertId 
+            message: 'Usuario registrado exitosamente. Por favor, revisa tu correo electrónico para activar tu cuenta.',
+            userId: result.insertId,
+            // Solo para desarrollo, en producción no enviar el token en la respuesta
+            activationToken: activationToken
         });
-
     } catch (error) {
         console.error('Client registration error:', error);
         res.status(500).json({ 
@@ -206,7 +399,37 @@ router.get('/categories', async (req, res) => {
 router.get('/books', async (req, res) => {
     try {
         const [books] = await pool.query('SELECT * FROM books');
-        res.json(books);
+        
+        // Handle image conversion
+        const booksWithImages = books.map(book => {
+            if (book.imagen) {
+                if (Buffer.isBuffer(book.imagen)) {
+                    // Check if Buffer contains base64 string or binary data
+                    const bufferString = book.imagen.toString('utf8');
+                    if (bufferString.startsWith('data:image')) {
+                        // Buffer contains complete data URL, use as is
+                        book.imagen = bufferString;
+                    } else if (bufferString.startsWith('/9j/') || bufferString.startsWith('iVBORw0KGgo')) {
+                        // Buffer contains base64 string, add data URL prefix
+                        book.imagen = `data:image/jpeg;base64,${bufferString}`;
+                    } else {
+                        // Buffer contains binary data, convert to base64
+                        book.imagen = `data:image/jpeg;base64,${book.imagen.toString('base64')}`;
+                    }
+                } else if (typeof book.imagen === 'string') {
+                    if (book.imagen.startsWith('data:image')) {
+                        // Already has data URL prefix, leave as is
+                        // Do nothing
+                    } else {
+                        // String without data URL prefix, add it
+                        book.imagen = `data:image/jpeg;base64,${book.imagen}`;
+                    }
+                }
+            }
+            return book;
+        });
+        
+        res.json(booksWithImages);
     } catch (error) {
         console.error('Error fetching books:', error);
         res.status(500).json({ 

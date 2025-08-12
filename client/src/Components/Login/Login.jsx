@@ -78,13 +78,22 @@ const Login = () => {
             </button>
           </div>
           <button type="submit">Login</button>
-          <button 
-            type="button" 
-            className="register-button"
-            onClick={() => navigate('/register')}
-          >
-            Register
-          </button>
+          <div className="form-actions">
+            <button 
+              type="button" 
+              className="register-button"
+              onClick={() => navigate('/register')}
+            >
+              Register
+            </button>
+            <button 
+              type="button" 
+              className="recovery-button"
+              onClick={() => navigate('/reset-password')}
+            >
+              ¿Olvidó su contraseña?
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -1,7 +1,44 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import '../../Assents/css/Register.css'
+
+// Simulación de ReCAPTCHA ya que no podemos instalar la dependencia
+const SimpleCaptcha = ({ onChange }) => {
+  const [captchaValue, setCaptchaValue] = useState('')
+  const captchaCode = useRef(Math.random().toString(36).substring(2, 8).toUpperCase())
+  
+  const handleChange = (e) => {
+    setCaptchaValue(e.target.value)
+    onChange(e.target.value === captchaCode.current)
+  }
+  
+  const refreshCaptcha = () => {
+    captchaCode.current = Math.random().toString(36).substring(2, 8).toUpperCase()
+    setCaptchaValue('')
+    onChange(false)
+  }
+  
+  return (
+    <div className="captcha-container">
+      <div className="captcha-code">{captchaCode.current}</div>
+      <input
+        type="text"
+        value={captchaValue}
+        onChange={handleChange}
+        placeholder="Ingrese el código CAPTCHA"
+        className="captcha-input"
+      />
+      <button 
+        type="button" 
+        onClick={refreshCaptcha}
+        className="refresh-captcha"
+      >
+        Refrescar
+      </button>
+    </div>
+  )
+}
 
 const Register = () => {
   const navigate = useNavigate()
@@ -14,6 +51,8 @@ const Register = () => {
   const [error, setError] = useState('')
   const [passwordErrors, setPasswordErrors] = useState([])
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [captchaVerified, setCaptchaVerified] = useState(false)
+
 
   const validatePassword = (password) => {
     const errors = []
@@ -83,9 +122,14 @@ const Register = () => {
   }
 
   const openPrivacyPolicy = () => {
-   
     window.open('/aviso-privacidad.pdf', '_blank')
   }
+  
+  const handleCaptchaChange = (verified) => {
+    setCaptchaVerified(verified)
+  }
+  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -94,6 +138,12 @@ const Register = () => {
     // Validar que se haya aceptado el aviso de privacidad
     if (!privacyAccepted) {
       setError('Debe aceptar el aviso de privacidad para continuar')
+      return
+    }
+    
+    // Validar CAPTCHA
+    if (!captchaVerified) {
+      setError('Por favor complete el CAPTCHA correctamente')
       return
     }
 
@@ -116,7 +166,7 @@ const Register = () => {
       })
 
       if (response.data.success) {
-        alert('Registro exitoso')
+        alert('Registro exitoso. Por favor, revisa tu correo electrónico para activar tu cuenta.')
         navigate('/login')
       }
     } catch (error) {
@@ -127,92 +177,97 @@ const Register = () => {
   return (
     <div className="register-container">
       <div className="register-box">
-        <h2>Registro de Usuario</h2>
-        {error && <div className="error-message">{error}</div>}
-        {passwordErrors.length > 0 && (
-          <div className="password-errors">
-            <ul>
-              {passwordErrors.map((err, index) => (
-                <li key={index} className="error-message">{err}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <input
-              type="text"
-              name="nombre"
-              placeholder="Nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirmar Contraseña"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          {/* Sección del aviso de privacidad */}
-          <div className="privacy-section">
-            <div className="privacy-checkbox">
+          <h2>Registro de Usuario</h2>
+          {error && <div className="error-message">{error}</div>}
+          {passwordErrors.length > 0 && (
+            <div className="password-errors">
+              <ul>
+                {passwordErrors.map((err, index) => (
+                  <li key={index} className="error-message">{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
               <input
-                type="checkbox"
-                id="privacyAccepted"
-                checked={privacyAccepted}
-                onChange={handlePrivacyChange}
+                type="text"
+                name="nombre"
+                placeholder="Nombre"
+                value={formData.nombre}
+                onChange={handleChange}
                 required
               />
-              <label htmlFor="privacyAccepted">
-                He leído y acepto el aviso de privacidad
-              </label>
             </div>
+            <div className="form-group">
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <input
+                type="password"
+                name="password"
+                placeholder="Contraseña"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirmar Contraseña"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            {/* Sección del CAPTCHA */}
+            <div className="captcha-section">
+              <SimpleCaptcha onChange={handleCaptchaChange} />
+            </div>
+            
+            {/* Sección del aviso de privacidad */}
+            <div className="privacy-section">
+              <div className="privacy-checkbox">
+                <input
+                  type="checkbox"
+                  id="privacyAccepted"
+                  checked={privacyAccepted}
+                  onChange={handlePrivacyChange}
+                  required
+                />
+                <label htmlFor="privacyAccepted">
+                  He leído y acepto el aviso de privacidad
+                </label>
+              </div>
+              <button 
+                type="button" 
+                className="privacy-link"
+                onClick={openPrivacyPolicy}
+              >
+                Ver Aviso de Privacidad (PDF)
+              </button>
+            </div>
+
+            <button type="submit">Registrarse</button>
             <button 
               type="button" 
-              className="privacy-link"
-              onClick={openPrivacyPolicy}
+              className="login-button"
+              onClick={() => navigate('/login')}
             >
-              Ver Aviso de Privacidad (PDF)
+              Volver al Login
             </button>
-          </div>
-
-          <button type="submit">Registrarse</button>
-          <button 
-            type="button" 
-            className="login-button"
-            onClick={() => navigate('/login')}
-          >
-            Volver al Login
-          </button>
-        </form>
-      </div>
+          </form>
+        </div>
     </div>
   )
 }

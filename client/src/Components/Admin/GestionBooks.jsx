@@ -111,8 +111,8 @@ const GestionBooks = () => {
     try {
       const submitData = {
         ...formData,
-        // Convertir imagen base64 a Buffer para longblob
-        imagen: formData.imagen ? formData.imagen.split(',')[1] : null
+        // Enviar imagen base64 completa
+        imagen: formData.imagen || null
       };
       
       if (editingId) {
@@ -142,11 +142,15 @@ const GestionBooks = () => {
   };
 
   const handleEdit = (book) => {
+    const imageUrl = book.imagen ? 
+      (book.imagen.startsWith('data:') ? book.imagen : `data:image/jpeg;base64,${book.imagen}`) : 
+      null;
+    
     setFormData({
       ...book,
-      imagen: book.imagen ? `data:image/jpeg;base64,${book.imagen}` : null
+      imagen: imageUrl
     });
-    setImagePreview(book.imagen ? `data:image/jpeg;base64,${book.imagen}` : null);
+    setImagePreview(imageUrl);
     setEditingId(book.id);
     document.querySelector('.book-form').scrollIntoView({ behavior: 'smooth' });
   };
@@ -346,7 +350,7 @@ const GestionBooks = () => {
                       <td data-label="Imagen">
                         {book.imagen ? (
                           <img 
-                            src={`data:image/jpeg;base64,${book.imagen}`} 
+                            src={book.imagen} 
                             alt={book.titulo}
                             style={{ width: '50px', height: '50px', objectFit: 'cover' }}
                           />
