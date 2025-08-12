@@ -104,22 +104,39 @@ app.use('/api', authRoutes);
 
 // Serve static files from React build
 if (process.env.NODE_ENV === 'production') {
-  // Try multiple possible paths for the build directory
-  const buildPath = path.join(__dirname, '../client/build');
-  const altBuildPath = path.join(process.cwd(), 'client/build');
+  // Multiple possible paths for the build directory
+  const possiblePaths = [
+    path.join(__dirname, '../client/build'),
+    path.join(process.cwd(), 'client/build'),
+    path.join(process.cwd(), 'src/client/build'),
+    '/opt/render/project/src/client/build'
+  ];
   
-  // Check which path exists and use it
-  const staticPath = require('fs').existsSync(buildPath) ? buildPath : altBuildPath;
+  let staticPath = null;
   
-  console.log('Serving static files from:', staticPath);
-  app.use(express.static(staticPath));
+  // Find the first path that exists
+  for (const testPath of possiblePaths) {
+    console.log('Testing path:', testPath);
+    if (require('fs').existsSync(testPath)) {
+      staticPath = testPath;
+      console.log('Found build directory at:', staticPath);
+      break;
+    }
+  }
   
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    const indexPath = path.join(staticPath, 'index.html');
-    console.log('Serving index.html from:', indexPath);
-    res.sendFile(indexPath);
-  });
+  if (staticPath) {
+    app.use(express.static(staticPath));
+    
+    // Handle React routing, return all requests to React app
+    app.get('*', (req, res) => {
+      const indexPath = path.join(staticPath, 'index.html');
+      console.log('Serving index.html from:', indexPath);
+      res.sendFile(indexPath);
+    });
+  } else {
+    console.error('Could not find React build directory in any of the expected locations');
+    console.error('Tested paths:', possiblePaths);
+  }
 }
 
 // Error handling middleware
