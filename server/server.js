@@ -108,6 +108,7 @@ if (process.env.NODE_ENV === 'production') {
   const possiblePaths = [
     path.join(__dirname, '../client/build'),
     path.join(process.cwd(), 'client/build'),
+    path.join(process.cwd(), '../client/build'),
     '/opt/render/project/src/client/build'
   ];
   
