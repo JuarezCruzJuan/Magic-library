@@ -102,63 +102,37 @@ app.post('/api/confirm-payment', async (req, res) => {
 // Routes
 app.use('/api', authRoutes);
 
-// Serve static files from React build
-if (process.env.NODE_ENV === 'production') {
-  // Multiple possible paths for the build directory
-  const possiblePaths = [
-    path.join(__dirname, '../client/build'),
-    path.join(process.cwd(), 'client/build'),
-    path.join(process.cwd(), '../client/build'),
-    '/opt/render/project/src/client/build'
-  ];
-  
-  let staticPath = null;
-  
-  // Find the first path that exists
-  for (const testPath of possiblePaths) {
-    console.log('Testing path:', testPath);
-    if (require('fs').existsSync(testPath)) {
-      staticPath = testPath;
-      console.log('Found build directory at:', staticPath);
-      break;
-    }
-  }
-  
-  if (staticPath) {
-    app.use(express.static(staticPath));
-    
-    // Handle React routing, return all requests to React app
-    app.get('*', (req, res) => {
-      const indexPath = path.join(staticPath, 'index.html');
-      console.log('Serving index.html from:', indexPath);
-      res.sendFile(indexPath);
-    });
-  } else {
-    console.error('Could not find React build directory in any of the expected locations');
-    console.error('Tested paths:', possiblePaths);
-    
-    // Fallback route when build directory is not found
-    app.get('/', (req, res) => {
-      res.status(500).json({
-        error: 'React build directory not found',
-        message: 'The application is not properly configured for production',
-        testedPaths: possiblePaths
-      });
-    });
-  }
-} else {
-  // Development mode - serve a simple message
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Magic Library API is running in development mode',
-      endpoints: {
-        api: '/api/*',
-        payment: '/api/create-payment-intent',
-        confirm: '/api/confirm-payment'
+// API-only mode - serve as backend API
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Magic Library API is running successfully',
+    status: 'active',
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: {
+      auth: ['/api/login', '/api/register'],
+      books: ['/api/books'],
+      users: ['/api/users'],
+      payments: ['/api/create-payment-intent', '/api/confirm-payment']
+    },
+    note: 'This is a backend API. Frontend should be deployed separately or build directory should be configured.'
+  });
+});
+
+// Handle all other routes that don't match API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.status(404).json({
+      error: 'Route not found',
+      message: 'This is an API server. Frontend routes are not available.',
+      availableEndpoints: {
+        auth: ['/api/login', '/api/register'],
+        books: ['/api/books'],
+        users: ['/api/users'],
+        payments: ['/api/create-payment-intent', '/api/confirm-payment']
       }
     });
-  });
-}
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
