@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import API_CONFIG from '../../config/api';
 import '../../Assents/css/GestionBooks.css';
 
 const GestionBooks = () => {
@@ -46,7 +48,7 @@ const GestionBooks = () => {
 
   const fetchBooks = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/books');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/books`);
       setBooks(response.data);
       return response.data;
     } catch (error) {
@@ -57,7 +59,7 @@ const GestionBooks = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/categories');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/categories`);
       setCategories(response.data);
       return response.data;
     } catch (error) {
@@ -116,9 +118,9 @@ const GestionBooks = () => {
       };
       
       if (editingId) {
-        await axios.put(`http://localhost:3001/api/books/${editingId}`, submitData);
+        await axios.put(`${API_CONFIG.BASE_URL}/books/${editingId}`, submitData);
       } else {
-        await axios.post('http://localhost:3001/api/books', submitData);
+        await axios.post(`${API_CONFIG.BASE_URL}/books`, submitData);
       }
       
       setFormData({
@@ -159,7 +161,7 @@ const GestionBooks = () => {
     if (window.confirm('¿Está seguro que desea eliminar este libro?')) {
       setIsLoading(true);
       try {
-        await axios.delete(`http://localhost:3001/api/books/${id}`);
+        await axios.delete(`${API_CONFIG.BASE_URL}/books/${id}`);
         await fetchBooks();
       } catch (error) {
         console.error('Error deleting book:', error);

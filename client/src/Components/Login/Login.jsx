@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import API_CONFIG from '../../config/api';
 import '../../Assents/css/Login.css';
 
 const Login = () => {
@@ -28,7 +29,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3001/api/login', formData);
+      const response = await axios.post(`${API_CONFIG.BASE_URL}/login`, formData);
       const { user } = response.data;
       
       localStorage.setItem('user', JSON.stringify(user));

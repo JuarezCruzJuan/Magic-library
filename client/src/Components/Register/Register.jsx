@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import API_CONFIG from '../../config/api'
 import '../../Assents/css/Register.css'
 
 // Simulación de ReCAPTCHA ya que no podemos instalar la dependencia
@@ -160,7 +161,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/api/register', {
+      const response = await axios.post(`${API_CONFIG.BASE_URL}/register`, {
         ...formData,
         rol: 'cliente'
       })

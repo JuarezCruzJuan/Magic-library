@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_CONFIG from '../../config/api';
 import '../../Assents/css/EditUser.css';
 
 const EditUser = () => {
@@ -17,7 +18,7 @@ const EditUser = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/users/${id}`);
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/users/${id}`);
         const { nombre, email, rol } = response.data;
         setFormData({ nombre, email, rol });
         setError('');
@@ -43,7 +44,7 @@ const EditUser = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:3001/api/users/${id}`, formData);
+      await axios.put(`${API_CONFIG.BASE_URL}/users/${id}`, formData);
       alert('Usuario actualizado exitosamente');
       navigate('/admin/users');
     } catch (error) {

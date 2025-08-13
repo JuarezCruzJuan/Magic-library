@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import API_CONFIG from '../../config/api';
 import '../../Assents/css/UserManagement.css';
 
 const UserManagement = () => {
@@ -16,7 +17,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/users');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/users`);
       setUsers(response.data);
       setError('');
     } catch (error) {
@@ -34,7 +35,7 @@ const UserManagement = () => {
   const handleDelete = async (userId) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
       try {
-        await axios.delete(`http://localhost:3001/api/users/${userId}`);
+        await axios.delete(`${API_CONFIG.BASE_URL}/users/${userId}`);
         alert('Usuario eliminado exitosamente');
         fetchUsers(); // Recargar la lista de usuarios
       } catch (error) {

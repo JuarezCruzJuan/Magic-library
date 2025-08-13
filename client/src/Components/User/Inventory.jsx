@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useCart } from '../../contexts/CartContext';
 import Nav from './Nav';
 import Footer from './Footer';
+import API_CONFIG from '../../config/api';
 import './Inventory.css';
 
 const Inventory = () => {
@@ -68,7 +69,7 @@ const Inventory = () => {
   const fetchAllBooks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/books');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/books`);
       setBooks(response.data);
       setFilteredBooks(response.data);
     } catch (error) {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import API_CONFIG from '../../config/api';
 import '../../Assents/css/RegisterAdmi.css';
 
 const RegisterAdmin = () => {
@@ -28,7 +29,7 @@ const RegisterAdmin = () => {
     }
 
     try {
-      await axios.post('http://localhost:3001/api/admin/register', {
+      await axios.post(`${API_CONFIG.BASE_URL}/admin/register`, {
         ...formData,
         rol: 'admin'
       });

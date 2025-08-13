@@ -5,6 +5,7 @@ import '../../Assents/css/Clasicos.css';
 import { useNavigate } from 'react-router-dom';
 import Nav from './Nav';
 import Footer from './Footer';
+import API_CONFIG from '../../config/api';
 
 const Clasicos = () => {
   const { addToCart } = useCart();
@@ -21,7 +22,7 @@ const Clasicos = () => {
   const fetchClassicBooks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/books');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/books`);
       // Filtrar solo los libros de la categoría Clásicos (ID: 2)
       const classicBooks = response.data.filter(book => book.categoria_id === 2);
       setBooks(classicBooks);

@@ -4,6 +4,7 @@ import { useCart } from '../../contexts/CartContext';
 import '../../Assents/css/Clasicos.css';
 import Nav from './Nav';
 import Footer from './Footer';
+import API_CONFIG from '../../config/api';
 
 const TerrorSuspenso = () => {
   const { addToCart } = useCart();
@@ -19,7 +20,7 @@ const TerrorSuspenso = () => {
   const fetchHorrorBooks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/books');
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/books`);
       // Filtrar solo los libros de la categoría Terror y Suspenso (ID: 3)
       const horrorBooks = response.data.filter(book => book.categoria_id === 3);
       setBooks(horrorBooks);

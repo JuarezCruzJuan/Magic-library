@@ -10,6 +10,7 @@ import { useCart } from '../../contexts/CartContext';
 import Nav from './Nav';
 import Footer from './Footer';
 import axios from 'axios';
+import API_CONFIG from '../../config/api';
 import './ShoppingCart.css';
 
 // Inicializar Stripe con tu clave pública
@@ -38,7 +39,7 @@ const CheckoutForm = ({ cart, total, onPaymentSuccess }) => {
 
     try {
       // Crear payment intent en el servidor
-      const { data } = await axios.post('http://localhost:3001/api/create-payment-intent', {
+      const { data } = await axios.post(`${API_CONFIG.BASE_URL}/create-payment-intent`, {
         amount: total,
         currency: 'mxn',
         metadata: {

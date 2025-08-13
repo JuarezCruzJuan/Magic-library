@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import API_CONFIG from '../../config/api';
 import './ActivateAccount.css';
 
 const ActivateAccount = () => {
@@ -23,7 +24,7 @@ const ActivateAccount = () => {
         }
 
         // Enviar solicitud al servidor para activar la cuenta
-        const response = await axios.get(`http://localhost:3001/api/activate?token=${token}`);
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/activate?token=${token}`);
 
         if (response.data.success) {
           setStatus('success');
