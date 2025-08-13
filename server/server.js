@@ -102,37 +102,58 @@ app.post('/api/confirm-payment', async (req, res) => {
 // Routes
 app.use('/api', authRoutes);
 
-// API-only mode - serve as backend API
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Magic Library API is running successfully',
-    status: 'active',
-    environment: process.env.NODE_ENV || 'development',
-    endpoints: {
-      auth: ['/api/login', '/api/register'],
-      books: ['/api/books'],
-      users: ['/api/users'],
-      payments: ['/api/create-payment-intent', '/api/confirm-payment']
-    },
-    note: 'This is a backend API. Frontend should be deployed separately or build directory should be configured.'
-  });
-});
+// Serve React build files
+const possibleBuildPaths = [
+  path.join(__dirname, '../client/build'),
+  path.join(__dirname, '../../client/build'),
+  path.join(process.cwd(), 'client/build'),
+  path.join(process.cwd(), '../client/build'),
+  '/opt/render/project/src/client/build'
+];
 
-// Handle all other routes that don't match API routes
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.status(404).json({
-      error: 'Route not found',
-      message: 'This is an API server. Frontend routes are not available.',
-      availableEndpoints: {
+let buildPath = null;
+for (const buildDir of possibleBuildPaths) {
+  if (fs.existsSync(buildDir)) {
+    buildPath = buildDir;
+    console.log(`✅ Found React build directory at: ${buildPath}`);
+    break;
+  } else {
+    console.log(`❌ Build directory not found at: ${buildDir}`);
+  }
+}
+
+if (buildPath) {
+  // Serve static files from React build
+  app.use(express.static(buildPath));
+  
+  // Handle React routing - send all non-API requests to React
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(buildPath, 'index.html'));
+    }
+  });
+} else {
+  console.log('⚠️  No React build directory found. Serving API only.');
+  
+  // Fallback: API Status endpoint
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Magic Library API is running successfully',
+      status: 'active',
+      environment: process.env.NODE_ENV || 'development',
+      endpoints: {
         auth: ['/api/login', '/api/register'],
         books: ['/api/books'],
         users: ['/api/users'],
         payments: ['/api/create-payment-intent', '/api/confirm-payment']
-      }
+      },
+      note: 'React build directory not found. Please build the client first.',
+      searchedPaths: possibleBuildPaths
     });
-  }
-});
+  });
+}
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
