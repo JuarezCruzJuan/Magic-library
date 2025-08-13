@@ -107,7 +107,6 @@ if (process.env.NODE_ENV === 'production') {
   // Multiple possible paths for the build directory
   const possiblePaths = [
     path.join(__dirname, '../client/build'),
-    path.join(process.cwd(), '../client/build'),
     path.join(process.cwd(), 'client/build'),
     '/opt/render/project/src/client/build'
   ];
