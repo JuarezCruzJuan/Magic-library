@@ -156,6 +156,11 @@ if (isProd) {
   });
 }
 
+// Healthcheck sencillo para Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, env: isProd ? 'production' : 'development' });
+});
+
 // API Status endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -186,10 +191,11 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
-// Iniciar servidor HTTP para desarrollo local
+// Iniciar servidor HTTP
 app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
-  console.log('Servidor configurado para desarrollo local');
+  const host = isProd ? '0.0.0.0' : 'localhost';
+  console.log(`[Server] Entorno: ${isProd ? 'production' : 'development'}`);
+  console.log(`[Server] Escuchando en http://${host}:${PORT}`);
   printRoutes(PORT, 'http');
 });
 
