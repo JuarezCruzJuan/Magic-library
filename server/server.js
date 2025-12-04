@@ -6,7 +6,18 @@ const fs = require('fs');
 const cors = require("cors");
 const helmet = require('helmet');
 const authRoutes = require("./auth");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Inicializar Stripe solo si existe la clave
+let stripe = null;
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (stripeKey) {
+  try {
+    stripe = require('stripe')(stripeKey);
+  } catch (e) {
+    console.error('Stripe no pudo inicializarse:', e.message);
+  }
+} else {
+  console.warn('STRIPE_SECRET_KEY no está configurada. Rutas de pago deshabilitadas.');
+}
 require('dotenv').config();
 
 const app = express();
@@ -58,6 +69,12 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Payment routes
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({
+        success: false,
+        message: 'Stripe no configurado. Pagos deshabilitados en este entorno.'
+      });
+    }
     const { amount, currency = 'mxn', metadata = {} } = req.body;
 
     // Crear el payment intent
@@ -88,6 +105,12 @@ app.post('/api/create-payment-intent', async (req, res) => {
 // Confirmar pago
 app.post('/api/confirm-payment', async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({
+        success: false,
+        message: 'Stripe no configurado. Pagos deshabilitados en este entorno.'
+      });
+    }
     const { paymentIntentId, orderData } = req.body;
 
     // Verificar el estado del pago
