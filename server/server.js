@@ -145,6 +145,11 @@ app.post('/api/confirm-payment', async (req, res) => {
 // Routes
 app.use('/api', authRoutes);
 
+// Healthcheck sencillo para Render (debe ir ANTES del fallback SPA)
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, env: isProd ? 'production' : 'development' });
+});
+
 // Servir estáticos del cliente en producción
 if (isProd) {
   const clientBuildPath = path.join(__dirname, '../client/build');
@@ -155,11 +160,6 @@ if (isProd) {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
-
-// Healthcheck sencillo para Render
-app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true, env: isProd ? 'production' : 'development' });
-});
 
 // API Status endpoint
 app.get('/', (req, res) => {
