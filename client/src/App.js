@@ -20,6 +20,8 @@ import TerrorSuspenso from './Components/User/TerrorSuspenso';
 import Inventory from './Components/User/Inventory';
 import ResetPassword from './Components/ResetPassword/ResetPassword';
 import ActivateAccount from './Components/ActivateAccount/ActivateAccount';
+import Suscripcion from './Components/User/Suscripcion';
+import InstallPrompt from './Components/InstallPrompt';
 
 function App() {
   return (
@@ -44,9 +46,11 @@ function App() {
           <Route path="/inventory" element={<Inventory/>} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<ShoppingCart />} /> 
+          <Route path="/suscripcion" element={<Suscripcion />} />
           <Route path="/admin/users" element={<UserManagement />} />
           <Route path="/admin/users/edit/:id" element={<EditUser />} />
         </Routes>
+        <InstallPrompt />
       </Router>
     </CartProvider>
   );

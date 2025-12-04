@@ -56,6 +56,12 @@ const Nav = () => {
               </Link>
             </li>
             <li className="nav-item">
+              <Link className="nav-link" to="/suscripcion">
+                <i className="fas fa-star me-1"></i>
+                Suscripción
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" to="/profile">
                 Mi Perfil
               </Link>

@@ -21,8 +21,8 @@ const Fantasia = () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_CONFIG.BASE_URL}/books`);
-      // Filtrar solo los libros de la categoría Fantasía (ID: 5)
-      const fantasyBooks = response.data.filter(book => book.categoria_id === 5);
+        // Filtrar solo los libros de la categoría Fantasía (ID: 5)
+        const fantasyBooks = response.data.filter(book => book.categoria_id === 5);
       setBooks(fantasyBooks);
     } catch (error) {
       console.error('Error fetching fantasy books:', error);
@@ -104,8 +104,8 @@ const Fantasia = () => {
             </div>
             <div className="modal-info">
               <h2>{selectedBook.titulo}</h2>
-              <p className="book-author">por {selectedBook.autor}</p>
-              <p className="book-description">{selectedBook.descripcion}</p>
+              <p className="book-author">por {selectedBook.autor || 'Desconocido'}</p>
+              <p className="book-description">{selectedBook.descripcion || 'Sin descripción disponible'}</p>
               <p className="book-price-detail">${selectedBook.precio}</p>
               <p className="book-stock">
                 <i className="fas fa-box"></i>
@@ -172,7 +172,7 @@ const Fantasia = () => {
                 </div>
                 <div className="book-info">
                   <h3 className="book-title">{book.titulo}</h3>
-                  <p className="book-author">por {book.autor}</p>
+                  <p className="book-author">por {book.autor || 'Desconocido'}</p>
                   <div className="book-details">
                     <span className="book-price">${book.precio}</span>
                     <span className="book-stock">

@@ -135,12 +135,10 @@ const TerrorSuspenso = () => {
     <>
       <Nav />
       <div className="clasicos-container">
-        <div className="header">
-          <h1>
-            <i className="fas fa-skull"></i>
-            Libros de Terror y Suspenso
-          </h1>
-        </div>
+        <h1 className="clasicos-title">
+          <i className="fas fa-skull"></i>
+          Libros de Terror y Suspenso
+        </h1>
         {books.length === 0 ? (
           <div className="no-books">
             <i className="fas fa-book"></i>
@@ -150,11 +148,12 @@ const TerrorSuspenso = () => {
           <div className="books-grid">
             {books.map((book) => (
               <div key={book.id} className="book-card">
-                <div className="book-image">
+                <div className="book-image-container">
                   {book.imagen ? (
                     <img 
                       src={book.imagen} 
                       alt={book.titulo}
+                      className="book-image"
                     />
                   ) : (
                     <div className="no-image">
@@ -164,29 +163,32 @@ const TerrorSuspenso = () => {
                   )}
                   {book.stock <= 0 && (
                     <div className="out-of-stock-overlay">
-                      <span>Sin Stock</span>
+                      <i className="fas fa-times-circle"></i>
+                      Sin stock
                     </div>
                   )}
                 </div>
                 <div className="book-info">
-                  <h3>{book.titulo}</h3>
+                  <h3 className="book-title">{book.titulo}</h3>
                   <p className="book-author">{book.autor || 'Desconocido'}</p>
-                  <p className="book-price">${book.precio}</p>
-                  <p className="book-stock">
-                    <i className="fas fa-box"></i>
-                    Stock: {book.stock}
-                  </p>
+                  <div className="book-details">
+                    <span className="book-price">${book.precio}</span>
+                    <span className="book-stock">
+                      <i className="fas fa-box"></i>
+                      {book.stock}
+                    </span>
+                  </div>
                   <div className="book-actions">
                     <button 
                       onClick={() => setSelectedBook(book)} 
-                      className="view-button"
+                      className="btn-ver-mas"
                     >
                       <i className="fas fa-eye"></i>
                       Ver más
                     </button>
                     <button 
                       onClick={() => handleAddToCart(book)} 
-                      className="add-button"
+                      className="btn-agregar"
                       disabled={book.stock <= 0}
                     >
                       <i className="fas fa-shopping-cart"></i>

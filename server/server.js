@@ -14,26 +14,46 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://magic-library-fullstack.onrender.com', 'https://magic-library-fullstack-*.onrender.com']
-    : ['https://localhost:3000', 'http://localhost:3000'],
-  credentials: true
-}));
+// Middleware para desarrollo local
+// CORS: en producción permitimos cualquier origen (necesario si el cliente
+// se sirve desde el mismo dominio o un dominio distinto). En desarrollo,
+// limitamos a localhost:3000.
+const isProd = process.env.NODE_ENV === 'production';
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.CLIENT_URL // opcional: dominio del front si se usa distinto dominio
+].filter(Boolean);
+
+const corsOptions = isProd
+  ? {
+      origin: function (origin, callback) {
+        // Permitir cualquier origen en producción, devolviendo el mismo origen
+        // para compatibilidad con credentials.
+        callback(null, origin || '*');
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }
+  : {
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, origin || '*');
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    };
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Redirect HTTP to HTTPS in production
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
-    }
-  });
-}
+// Configuración general
+// En producción servimos el build de React como estático
 
 // Payment routes
 app.post('/api/create-payment-intent', async (req, res) => {
@@ -102,56 +122,31 @@ app.post('/api/confirm-payment', async (req, res) => {
 // Routes
 app.use('/api', authRoutes);
 
-// Serve React build files
-const possibleBuildPaths = [
-  path.join(__dirname, '../client/build'),
-  path.join(__dirname, '../../client/build'),
-  path.join(process.cwd(), 'client/build'),
-  path.join(process.cwd(), '../client/build'),
-  '/opt/render/project/src/client/build'
-];
+// Servir estáticos del cliente en producción
+if (isProd) {
+  const clientBuildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(clientBuildPath));
 
-let buildPath = null;
-for (const buildDir of possibleBuildPaths) {
-  if (fs.existsSync(buildDir)) {
-    buildPath = buildDir;
-    console.log(`✅ Found React build directory at: ${buildPath}`);
-    break;
-  } else {
-    console.log(`❌ Build directory not found at: ${buildDir}`);
-  }
+  // Fallback para rutas del cliente (SPA)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
 }
 
-if (buildPath) {
-  // Serve static files from React build
-  app.use(express.static(buildPath));
-  
-  // Handle React routing - send all non-API requests to React
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(buildPath, 'index.html'));
+// API Status endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Magic Library API está funcionando correctamente',
+    status: 'activo',
+    environment: isProd ? 'production' : 'development',
+    endpoints: {
+      auth: ['/api/login', '/api/register'],
+      books: ['/api/books'],
+      users: ['/api/users'],
+      payments: ['/api/create-payment-intent', '/api/confirm-payment']
     }
   });
-} else {
-  console.log('⚠️  No React build directory found. Serving API only.');
-  
-  // Fallback: API Status endpoint
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Magic Library API is running successfully',
-      status: 'active',
-      environment: process.env.NODE_ENV || 'development',
-      endpoints: {
-        auth: ['/api/login', '/api/register'],
-        books: ['/api/books'],
-        users: ['/api/users'],
-        payments: ['/api/create-payment-intent', '/api/confirm-payment']
-      },
-      note: 'React build directory not found. Please build the client first.',
-      searchedPaths: possibleBuildPaths
-    });
-  });
-}
+});
 
 
 
@@ -168,36 +163,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
-// SSL Configuration
-let sslOptions = {};
-try {
-  sslOptions = {
-    key: fs.readFileSync('./ssl/key.pem'),
-    cert: fs.readFileSync('./ssl/cert.pem')
-  };
-} catch (error) {
-  console.log('SSL certificates not found. Running HTTP only.');
-}
-
-// Start servers
-if (Object.keys(sslOptions).length > 0) {
-  https.createServer(sslOptions, app).listen(HTTPS_PORT, () => {
-    console.log(`HTTPS Server running on https://localhost:${HTTPS_PORT}`);
-    console.log('SSL/TLS enabled');
-    printRoutes(HTTPS_PORT, 'https');
-  });
-  
-  http.createServer(app).listen(PORT, () => {
-    console.log(`HTTP Server running on http://localhost:${PORT}`);
-    console.log('(Redirects to HTTPS in production)');
-  });
-} else {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log('SSL not configured - running HTTP only');
-    printRoutes(PORT, 'http');
-  });
-}
+// Iniciar servidor HTTP para desarrollo local
+app.listen(PORT, () => {
+  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log('Servidor configurado para desarrollo local');
+  printRoutes(PORT, 'http');
+});
 
 function printRoutes(port, protocol) {
   console.log('Routes available:');

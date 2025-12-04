@@ -167,7 +167,7 @@ const Register = () => {
       })
 
       if (response.data.success) {
-        alert('Registro exitoso. Por favor, revisa tu correo electrónico para activar tu cuenta.')
+        alert('Registro exitoso. Ya puedes iniciar sesión.')
         navigate('/login')
       }
     } catch (error) {

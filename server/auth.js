@@ -9,7 +9,7 @@ const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'bestlibrary',
+    database: process.env.DB_NAME || 'magiclibrary',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -335,7 +335,7 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Check if email already exists
+        // Verificar si el email ya existe
         const [existingUser] = await pool.query(
             'SELECT id FROM users WHERE email = ?',
             [email]
@@ -348,27 +348,16 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Generar token de activación
-        const activationToken = crypto.randomBytes(32).toString('hex');
-        const activationExpiry = new Date(Date.now() + 24 * 3600000); // 24 horas
-
-        // Insert new client with activation token
+        // Insertar nuevo usuario como activo, sin verificación por correo
         const [result] = await pool.query(
-            'INSERT INTO users (nombre, email, password, rol, activation_token, is_active, activation_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [nombre, email, password, rol, activationToken, false, activationExpiry]
+            'INSERT INTO users (nombre, email, password, rol, is_active) VALUES (?, ?, ?, ?, ?)',
+            [nombre, email, password, rol || 'cliente', true]
         );
-
-        // En una implementación real, aquí enviarías un correo electrónico con el enlace de activación
-        // que incluiría el token, por ejemplo: https://tudominio.com/activate?token=activationToken
-        
-        console.log(`Token de activación para ${email}: ${activationToken}`);
 
         res.json({ 
             success: true, 
-            message: 'Usuario registrado exitosamente. Por favor, revisa tu correo electrónico para activar tu cuenta.',
-            userId: result.insertId,
-            // Solo para desarrollo, en producción no enviar el token en la respuesta
-            activationToken: activationToken
+            message: 'Usuario registrado exitosamente. Ya puedes iniciar sesión.',
+            userId: result.insertId
         });
     } catch (error) {
         console.error('Client registration error:', error);
