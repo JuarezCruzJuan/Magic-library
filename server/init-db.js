@@ -114,9 +114,8 @@ async function initDB() {
 
     } catch (error) {
         console.error('Error durante la inicialización:', error);
-    } finally {
-        pool.end();
     }
+    // No cerramos el pool aquí porque se usa en el servidor
 }
 
-initDB();
+module.exports = { initDB };
