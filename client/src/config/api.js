@@ -4,8 +4,8 @@ const API_CONFIG = {
   BASE_URL:
     process.env.REACT_APP_API_BASE_URL ||
     (process.env.NODE_ENV === 'production'
-      ? 'https://magic-library-fullstack.onrender.com/api'
-      : 'http://localhost:3001/api')
+      ? 'https://magic-library.onrender.com/api'
+      : 'http://localhost:4000/api')
 };
 
 export default API_CONFIG;
