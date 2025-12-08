@@ -6,6 +6,9 @@ const fs = require('fs');
 const cors = require("cors");
 const helmet = require('helmet');
 const authRoutes = require("./auth");
+// Importar script de inicialización de DB
+const { initDB } = require('./init-db'); 
+
 // Inicializar Stripe solo si existe la clave
 let stripe = null;
 const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -188,16 +191,61 @@ app.use((err, req, res, next) => {
     });
 });
 
-const PORT = process.env.PORT || 3001;
-const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
+// Start server
+const PORT = process.env.PORT || 4000;
 
-// Iniciar servidor HTTP
-app.listen(PORT, () => {
-  const host = isProd ? '0.0.0.0' : 'localhost';
-  console.log(`[Server] Entorno: ${isProd ? 'production' : 'development'}`);
-  console.log(`[Server] Escuchando en http://${host}:${PORT}`);
-  printRoutes(PORT, 'http');
-});
+// Función para iniciar el servidor después de intentar conectar a la DB
+const startServer = async () => {
+  try {
+    // Intentar inicializar la DB al arrancar (crear tablas si no existen)
+    console.log('Verificando estado de la base de datos...');
+    try {
+      await initDB();
+      console.log('Verificación de base de datos completada.');
+    } catch (dbError) {
+      console.error('Advertencia: Error al inicializar la base de datos, pero el servidor continuará:', dbError.message);
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      // En producción, Render maneja SSL, usamos HTTP simple en el puerto asignado
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT} (Production Mode)`);
+        console.log(`Health check available at http://localhost:${PORT}/health`);
+      });
+    } else {
+      // En desarrollo local
+      try {
+        const keyPath = path.join(__dirname, '../ssl/server.key');
+        const certPath = path.join(__dirname, '../ssl/server.crt');
+        
+        if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+          const httpsOptions = {
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
+          };
+          https.createServer(httpsOptions, app).listen(PORT, () => {
+            console.log(`Secure Server running on port ${PORT} (Development Mode)`);
+            console.log(`API available at https://localhost:${PORT}`);
+          });
+        } else {
+          app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT} (Development Mode - No SSL)`);
+            console.log(`API available at http://localhost:${PORT}`);
+          });
+        }
+      } catch (e) {
+        console.error('Error starting server:', e);
+        app.listen(PORT, () => {
+          console.log(`Fallback: Server running on port ${PORT}`);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error fatal al iniciar el servidor:', error);
+  }
+};
+
+startServer();
 
 function printRoutes(port, protocol) {
   console.log('Routes available:');
